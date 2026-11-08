@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f2623e">
+  <title>Lunch Run — 오늘 점심, 가볍게 결정</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23f2623e'/%3E%3Ctext x='13' y='45' font-size='39' fill='white' font-family='sans-serif' font-weight='bold'%3EL%3C/text%3E%3C/svg%3E">
+  <!-- 이전 스타일 캐시가 연결 상태의 색상·배치를 가리지 않도록 버전을 갱신합니다. -->
+  <link rel="stylesheet" href="/static/styles.css?v=groq-status-1">
+  <!-- 공개 JavaScript 키로 SDK를 준비한 뒤 지도 생성 모듈을 로드합니다. -->
+  <script defer src="/static/kakao-sdk.js"></script>
+  <script defer src="/static/map.js"></script>
+  <!-- 실제 위치 조회·검색 기능을 먼저 로드하여 app.js가 공통 위치 함수를 사용할 수 있게 합니다. -->
+  <script defer src="/static/location.js"></script>
+  <!-- 채팅 상태와 별도로 Groq 인증·모델 확인 결과를 표시합니다. -->
+  <script defer src="/static/groq-status.js"></script>
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <!-- 위치와 식당 후보는 실제 검색이며 메뉴 선정 조건은 아직 예시 데이터라는 범위를 안내합니다. -->
+  <div class="demo-strip"><span class="status-dot"></span> DEMO PLAYGROUND <span>카카오 식당 후보 검색 · 메뉴 조건은 예시 · 실제 매장 조건 미확인</span></div>
+  <header class="site-header"><a class="logo" href="#home" aria-label="Lunch Run 홈"><span class="logo-mark">L<span>↗</span></span>Lunch Run<span class="logo-period">.</span></a><nav aria-label="주 메뉴"><a href="#home">홈</a><a href="#recommend">점심 고르기</a><a href="#map">식당 둘러보기</a></nav><div id="account"></div></header>
+  <main id="app"></main>
+  <footer><a class="footer-logo" href="#home">Lunch Run.</a><span>점심시간은 짧으니까, 결정은 가볍게.</span><small>LOCAL DEMO · 2026</small></footer>
+  <dialog id="modal" aria-label="Lunch Run 설정 및 데모 로그인"></dialog><div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
