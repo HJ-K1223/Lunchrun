@@ -5,7 +5,7 @@ const defaults = () => ({ minutes: 45, budget: 12000, cuisine: '전체', diet: '
 // 위치는 실제 조회 결과만 저장합니다. 반경은 다음 식당 검색 연결을 위한 요청값입니다.
 const locationSearch = { kind: 'place', query: '', items: [], error: '', busy: false, token: 0, controller: null, timer: null };
 // 위치 반경은 음식 조건과 별도로 관리하며 기본값은 500m입니다.
-const state = { conditions: defaults(), radiusM: 500, location: null, user: null, prefs: {}, result: null, selected: null, cardPage: 0, mapPage: 0, busy: false, spinning: false, version: 0, messages: [], chatTurn: 0, aiStatus: 'Groq API · 요청 시 연결', gamePlayed: false };
+const state = { conditions: defaults(), radiusM: 500, location: null, user: null, prefs: {}, result: null, selected: null, cardPage: 0, mapPage: 0, busy: false, spinning: false, version: 0, messages: [], chatTurn: 0, gamePlayed: false };
 let toastTimer, spinTimer, spinFinish;
 try { state.prefs = JSON.parse(localStorage.getItem('lr-demo-preferences') || '{}'); } catch { state.prefs = {}; }
 // Each browser session starts as a guest. Demo membership is not authentication.
@@ -111,7 +111,7 @@ function chatMessages() {
   return state.messages.map((m,i) => `<div class="message ${m.role}"><span class="message-avatar">${m.role==='user'?'나':'✳'}</span><div><p>${esc(m.text)}</p>${m.patch ? `<p class="patch-summary">${esc(patchSummary(m.patch))}</p>` : ''}${m.patch ? button('조건 변경 적용','apply-patch','button small secondary',`data-message="${i}" ${m.version!==state.version||m.turn!==state.chatTurn||state.busy?'disabled':''}`):''}${m.map && m.version===state.version ? `<div class="message-actions">${button('Yes · 지도 보기','map','button small primary')}${button('No · 계속 고르기','decline-map','button small secondary',`data-message="${i}"`)}</div>`:''}</div></div>`).join('');
 }
 function recommendPage() {
-  return `${pageHeading('MAKE YOUR LUNCH', '오늘은 어떻게 골라볼까요?', '운에 맡겨도 좋고, 점심 메이트에게 물어봐도 좋아요.')}${summaries()}<div class="recommend-layout"><section class="game-invite"><span class="eyebrow">LET LUCK PICK</span><div class="dice-art" aria-hidden="true">⚄</div><h2>고민 대신,<br>운 좋은 한 끼.</h2><p>조건에 맞는 메뉴 중 하나를<br>랜덤으로 골라드릴게요.</p>${button('메뉴 뽑으러 가기 ↗','game','button dark full')}<small>외부 게임 없이 동작하는 데모 추첨</small></section><section class="chat-panel"><div class="chat-header"><div><span class="status-dot"></span><b>점심 메이트</b></div><span class="tiny-label">${esc(state.aiStatus)}</span></div><div id="groq-connection" class="groq-connection" data-status="checking" role="status" aria-live="polite"><div><b class="groq-status-label">Groq 연결 확인 중</b><p class="groq-status-detail">연결 상태를 확인합니다.</p><small class="groq-status-time">아직 확인된 시각이 없습니다.</small></div><button class="button small secondary" data-action="check-groq">연결 다시 확인</button></div><div class="chat-body" id="chat-body" role="log" aria-live="polite">${chatMessages()}</div><div class="quick-prompts">${['지금 조건으로 추천해줘','가까운 식당 보여줘','메뉴 설명해줘'].map(q=>button(esc(q),'prompt','prompt-button',`data-text="${q}" ${state.busy?'disabled':''}`)).join('')}</div><form id="chat-form" class="chat-input"><label class="sr-only" for="chat-message">점심 질문</label><input id="chat-message" name="message" maxlength="500" placeholder="오늘 점심은 어떤 게 좋을까요?" required ${state.busy?'disabled':''}><button class="send-button" aria-label="메시지 보내기" ${state.busy?'disabled':''}>${state.busy?'…':'↑'}</button></form></section></div>${resultCards()}`;
+  return `${pageHeading('MAKE YOUR LUNCH', '오늘은 어떻게 골라볼까요?', '운에 맡겨도 좋고, 점심 메이트에게 물어봐도 좋아요.')}${summaries()}<div class="recommend-layout"><section class="game-invite"><span class="eyebrow">LET LUCK PICK</span><div class="dice-art" aria-hidden="true">⚄</div><h2>고민 대신,<br>운 좋은 한 끼.</h2><p>조건에 맞는 메뉴 중 하나를<br>랜덤으로 골라드릴게요.</p>${button('메뉴 뽑으러 가기 ↗','game','button dark full')}<small>외부 게임 없이 동작하는 데모 추첨</small></section><section class="chat-panel"><div class="chat-header"><div><span class="status-dot"></span><b>점심 메이트</b></div><span id="ai-connection-summary" class="tiny-label ai-connection-summary" data-status="checking" data-busy="${state.busy}">${state.busy?'AI 응답 생성 중…':'AI 연결 확인 중'}</span></div><div id="groq-connection" class="groq-connection" data-status="checking" role="status" aria-live="polite"><div><b class="groq-status-label">Groq 연결 확인 중</b><p class="groq-status-detail">연결 상태를 확인합니다.</p><small class="groq-status-time">아직 확인된 시각이 없습니다.</small></div><button class="button small secondary" data-action="check-groq">연결 다시 확인</button></div><div class="chat-body" id="chat-body" role="log" aria-live="polite">${chatMessages()}</div><div class="quick-prompts">${['지금 조건으로 추천해줘','가까운 식당 보여줘','메뉴 설명해줘'].map(q=>button(esc(q),'prompt','prompt-button',`data-text="${q}" ${state.busy?'disabled':''}`)).join('')}</div><form id="chat-form" class="chat-input"><label class="sr-only" for="chat-message">점심 질문</label><input id="chat-message" name="message" maxlength="500" placeholder="오늘 점심은 어떤 게 좋을까요?" required ${state.busy?'disabled':''}><button class="send-button" aria-label="메시지 보내기" ${state.busy?'disabled':''}>${state.busy?'…':'↑'}</button></form></section></div>${resultCards()}`;
 }
 function gamePage() {
   const menu = state.result?.menu;
@@ -259,18 +259,17 @@ async function sendChat(message) {
   // 추첨 도중 다른 화면에서 채팅을 시작해도 기존 타이머가 검색 결과를 덮지 않게 합니다.
   cancelSpin();
   const version=state.version, turn=++state.chatTurn;
-  state.messages.push({role:'user',text:message});state.busy=true;state.aiStatus='Groq 해석 중…';render();
+  state.messages.push({role:'user',text:message});state.busy=true;render();
   // Groq 해석 이후 서버가 반환한 실제 검색 결과만 기존 카드·지도에 연결합니다.
   try {
     const data=await api('chat',{...payload(true),message});
     if(version!==state.version)return;
     if(data.result){cancelSpin();state.result=data.result;state.cardPage=0;state.mapPage=0;state.selected=null;state.gamePlayed=false;}
-    state.aiStatus='Groq 응답 확인';
     state.messages.push({role:'assistant',text:data.text,patch:data.suggested_patch,version,turn});
     if(data.result?.restaurants?.length)state.messages.push({role:'assistant',text:'검색된 식당 후보 목록과 주변 지도를 볼까요?',map:true,version});
   } catch(e){
-    if(version===state.version){state.aiStatus='요청 실패 · 재시도 가능';state.result=null;state.selected=null;state.messages.push({role:'assistant',text:e.name==='TimeoutError'?'전체 요청 시간이 초과되었습니다. 다시 시도해 주세요.':e.message});}
-  } finally {state.busy=false;if(state.aiStatus==='Groq 해석 중…')state.aiStatus='Groq API · 요청 시 연결';render();}
+    if(version===state.version){state.result=null;state.selected=null;state.messages.push({role:'assistant',text:e.name==='TimeoutError'?'전체 요청 시간이 초과되었습니다. 다시 시도해 주세요.':e.message});}
+  } finally {state.busy=false;render();}
 }
 
 function drawRestaurant() {

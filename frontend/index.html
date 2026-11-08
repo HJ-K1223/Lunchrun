@@ -13,9 +13,9 @@
   <script defer src="/static/map.js"></script>
   <!-- 실제 위치 조회·검색 기능을 먼저 로드하여 app.js가 공통 위치 함수를 사용할 수 있게 합니다. -->
   <script defer src="/static/location.js"></script>
-  <!-- 채팅 상태와 별도로 Groq 인증·모델 확인 결과를 표시합니다. -->
-  <script defer src="/static/groq-status.js"></script>
-  <script defer src="/static/app.js"></script>
+  <!-- 버전값으로 이전 JavaScript 캐시를 무효화하고 실제 Groq 상태 표시 코드를 즉시 받습니다. -->
+  <script defer src="/static/groq-status.js?v=groq-status-2"></script>
+  <script defer src="/static/app.js?v=groq-status-2"></script>
 </head>
 <body>
   <!-- 위치와 식당 후보는 실제 검색이며 메뉴 선정 조건은 아직 예시 데이터라는 범위를 안내합니다. -->

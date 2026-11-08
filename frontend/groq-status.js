@@ -3,6 +3,7 @@ window.LunchRunGroqStatus = (() => {
   let pending = false, expires = 0;
   let current = {status:'checking', message:'Groq 연결 상태를 확인합니다.', checked_at:null};
   const labels = {checking:'Groq 연결 확인 중', connected:'Groq 연결 확인됨', disconnected:'Groq 연결 안 됨', unknown:'Groq 연결 확인 실패'};
+  const summaryLabels = {checking:'AI 연결 확인 중', connected:'AI 연결됨', disconnected:'AI 미연결', unknown:'AI 연결 확인 실패'};
   function paint() {
     const box=document.querySelector('#groq-connection');
     if(!box)return;
@@ -13,6 +14,13 @@ window.LunchRunGroqStatus = (() => {
     const date=current.checked_at?new Date(current.checked_at):null;
     box.querySelector('.groq-status-time').textContent=date&&!Number.isNaN(date.getTime())?`마지막 확인: ${date.toLocaleString('ko-KR')}${current.cached?' · 최근 확인 결과':''}`:'아직 확인된 시각이 없습니다.';
     box.querySelector('button').disabled=pending;
+    // 채팅창 우측 상단도 동일한 검사 결과를 사용해 고정 문구와 실제 상태가 어긋나지 않게 합니다.
+    const summary=document.querySelector('#ai-connection-summary');
+    if(summary){
+      const busy=summary.dataset.busy==='true';
+      summary.dataset.status=busy?'checking':status;
+      summary.textContent=busy?'AI 응답 생성 중…':summaryLabels[status];
+    }
   }
   async function check(refresh=false) {
     if(pending)return;

@@ -72,4 +72,5 @@ footer{max-width:1200px;margin:0 auto;padding:24px 0 34px;border-top:1px solid v
 .groq-connection[data-status="unknown"] .groq-status-label{color:#aa6515}
 .groq-status-detail{font-size:10px;color:#72786f;margin:5px 0;overflow-wrap:anywhere}
 .groq-status-time{font-size:9px;color:#72786f}.groq-connection .button{flex-shrink:0}
+.ai-connection-summary[data-status="connected"]{color:#287546}.ai-connection-summary[data-status="disconnected"]{color:#b53636}.ai-connection-summary[data-status="unknown"]{color:#aa6515}
 @media(max-width:740px){.groq-connection{align-items:flex-start;flex-direction:column;padding:12px 15px}.groq-connection .button{align-self:flex-end}}
