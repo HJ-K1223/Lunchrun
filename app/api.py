@@ -1,12 +1,19 @@
-from fastapi import APIRouter, HTTPException, Request
+"""추천·채팅 API와 4단계 식당 저장 세션을 연결하는 라우터."""
+
 import asyncio
 from datetime import datetime, timezone
 from time import monotonic
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+
+from . import services
 from .clients.kakao import KakaoClient, KakaoError
 from .clients.groq import GroqClient, GroqError
+from .database import get_db
 from .schemas import ChatRequest, RecommendationRequest
-from . import services
 
 
 router = APIRouter(prefix="/api")
@@ -38,11 +45,15 @@ def health(request: Request):
 
 
 @router.post("/recommendations")
-async def recommendations(body: RecommendationRequest, request: Request):
-    # 입력 검증 후 선택한 위치와 반경을 서버 전용 클라이언트로 전달합니다.
+async def recommendations(body: RecommendationRequest, request: Request,
+                          session: Annotated[Session, Depends(get_db)]):
+    # 요청별 DB 세션을 서비스에 넘겨 카카오 검색 결과를 restaurant에 함께 저장합니다.
     client = KakaoClient(request.app.state.settings.map_api_key)
     try:
-        result = await services.recommend(body.conditions, body.location, body.radius_m, client, body.menu_id)
+        result = await services.recommend(
+            body.conditions, body.location, body.radius_m, client, body.menu_id,
+            session, request.app.state.database
+        )
     except KakaoError as error:
         # 인증 실패를 빈 결과나 가상 식당으로 대체하지 않고 안전한 오류를 반환합니다.
         raise HTTPException(error.status_code, error.message, headers={"X-Error-Code": error.code}) from None
@@ -50,11 +61,16 @@ async def recommendations(body: RecommendationRequest, request: Request):
 
 
 @router.post("/chat")
-async def chat(body: ChatRequest, request: Request):
-    # 챗봇도 게임과 동일한 위치·반경·검색 경로를 사용합니다.
+async def chat(body: ChatRequest, request: Request,
+               session: Annotated[Session, Depends(get_db)]):
+    # 챗봇도 게임과 동일한 위치·반경·검색·DB 저장 경로를 사용합니다.
     client = KakaoClient(request.app.state.settings.map_api_key)
     try:
-        result = await services.chat(body.message.strip(), body.conditions, body.menu_id, body.location, body.radius_m, client, GroqClient(request.app.state.settings))
+        result = await services.chat(
+            body.message.strip(), body.conditions, body.menu_id, body.location,
+            body.radius_m, client, GroqClient(request.app.state.settings), session,
+            request.app.state.database
+        )
     except (KakaoError, GroqError) as error:
         # 외부 오류 원문이나 키는 공개하지 않고 진단 코드만 헤더에 포함합니다.
         raise HTTPException(error.status_code, error.message, headers={"X-Error-Code": error.code}) from None

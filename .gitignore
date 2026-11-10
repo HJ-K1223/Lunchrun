@@ -8,3 +8,7 @@ __pycache__/
 *.log
 *.py[cod]
 .pytest_cache/
+.db
+data/*.db
+data/*.db-shm
+data/*.db-wal

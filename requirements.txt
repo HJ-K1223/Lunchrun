@@ -31,3 +31,5 @@ sentencepiece>=0.2.0
 supabase==2.34.0
 psycopg[binary]==3.3.8
 redis==8.1.0
+sqlalchemy == 2.1.8
+playwright==1.64.1

@@ -94,16 +94,21 @@ function preferenceButtons(item) {
   return `<div class="preference-buttons">${button('♡','preference',`icon-button ${pref==='like'?'liked':''}`,`data-id="${esc(item.id)}" data-value="like" aria-label="${esc(item.name)} 선호" aria-pressed="${pref==='like'}"`)}${button('⊘','preference',`icon-button ${pref==='dislike'?'disliked':''}`,`data-id="${esc(item.id)}" data-value="dislike" aria-label="${esc(item.name)} 비선호" aria-pressed="${pref==='dislike'}"`)}</div>`;
 }
 function restaurantCard(item, sidebar = false) {
-  // 카카오에는 메뉴 가격/평점/도보시간이 없으므로 null을 0원·0분으로 변환하지 않습니다.
-  const price=typeof item.price==='number'&&Number.isFinite(item.price)?money(item.price):'데이터 없음';
+  // 6단계 DB 검증값만 가격으로 표시하며 NULL을 0원으로 바꾸지 않습니다.
+  const price=typeof item.price==='number'&&Number.isFinite(item.price)?money(item.price):item.price_status==='variable'?'시가/변동':'확인 불가';
   const distance=typeof item.distance_m==='number'&&Number.isFinite(item.distance_m)?`${Math.round(item.distance_m).toLocaleString('ko-KR')}m`:'데이터 없음';
-  return `<article class="restaurant-card ${sidebar?'list-card':''} ${state.selected===item.id?'selected':''}">${preferenceButtons(item)}<button class="card-image" data-action="select-restaurant" data-id="${esc(item.id)}" aria-label="${esc(item.name)} 선택"><span>⌑</span><small>No image</small></button><div class="card-content"><span class="card-category">${esc(item.category||'분류 데이터 없음')}</span><button class="card-name" data-action="select-restaurant" data-id="${esc(item.id)}">${sidebar?`${(state.result?.restaurants||[]).slice(state.mapPage*5,state.mapPage*5+5).findIndex(p=>p.id===item.id)+1}. `:''}${esc(item.name)}</button><span class="menu-line">검색어: ${esc(item.search_keyword||'정보 없음')} · 판매 여부 미확인</span><span class="card-address">${esc(item.address||'주소 데이터 없음')}</span><div class="card-price">${price} <span>메뉴 가격</span></div><div class="card-meta"><span>☆ 평점 데이터 없음</span><span>직선거리 ${distance}</span></div><small class="estimate-note">이동시간 데이터 없음 · 음식 조건 미확인</small></div></article>`;
+  const menu=item.menu_verified?`메뉴: ${esc(item.menu_name||item.search_keyword||'확인됨')}`:'메뉴 확인 불가';
+  const warnings=Array.isArray(item.warnings)&&item.warnings.length?` · ${esc(item.warnings.join(' · '))}`:'';
+  // 추천과 확인 필요 후보가 같은 카드 구조를 사용하되 확인 상태를 문장으로 구분합니다.
+  return `<article class="restaurant-card ${sidebar?'list-card':''} ${state.selected===item.id?'selected':''}">${preferenceButtons(item)}<button class="card-image" data-action="select-restaurant" data-id="${esc(item.id)}" aria-label="${esc(item.name)} 선택"><span>⌑</span><small>No image</small></button><div class="card-content"><span class="card-category">${esc(item.category||'분류 데이터 없음')}</span><button class="card-name" data-action="select-restaurant" data-id="${esc(item.id)}">${sidebar?`${(state.result?.restaurants||[]).slice(state.mapPage*5,state.mapPage*5+5).findIndex(p=>p.id===item.id)+1}. `:''}${esc(item.name)}</button><span class="menu-line">${menu} · 현재 영업 중</span><span class="card-address">${esc(item.address||'주소 데이터 없음')}</span><div class="card-price">${price} <span>메뉴 가격</span></div><div class="card-meta"><span>☆ 평점 데이터 없음</span><span>직선거리 ${distance}</span></div><small class="estimate-note">이동시간·채식·맵기 미확인${warnings}</small></div></article>`;
 }
 function resultCards() {
-  if (!state.result?.restaurants?.length) return '';
-  const items = state.result.restaurants;
-  // 실제 검색 후보라는 점과 미검증 조건을 카드 위에 함께 표시합니다.
-  return `<section class="result-section"><div class="section-heading"><div><span class="eyebrow">LUNCH SPOTS</span><h2>${esc(state.result.menu.name)} 관련 식당 후보 <small>${items.length}</small></h2></div><span class="muted">카카오 검색</span></div><p class="candidate-notice">${esc(state.result.message)}${state.result.has_more?' 현재 첫 검색 페이지의 후보만 표시합니다.':''}</p><div class="restaurant-grid">${items.slice(state.cardPage*4,state.cardPage*4+4).map(i=>restaurantCard(i)).join('')}</div>${pager(state.cardPage,4,items.length,'cards-page')}</section>`;
+  const items=state.result?.restaurants||[], candidates=state.result?.candidate_restaurants||[];
+  if (!items.length&&!candidates.length) return '';
+  // 조건이 확인된 추천과 메뉴·가격 확인이 필요한 후보를 섞지 않고 별도 영역에 표시합니다.
+  const recommended=items.length?`<section class="result-section"><div class="section-heading"><div><span class="eyebrow">VERIFIED LUNCH SPOTS</span><h2>${esc(state.result.menu.name)} 추천 식당 <small>${items.length}</small></h2></div><span class="muted">현재 영업 중</span></div><div class="restaurant-grid">${items.slice(state.cardPage*4,state.cardPage*4+4).map(i=>restaurantCard(i)).join('')}</div>${pager(state.cardPage,4,items.length,'cards-page')}</section>`:'';
+  const needsCheck=candidates.length?`<section class="result-section"><div class="section-heading"><div><span class="eyebrow">NEEDS CHECK</span><h2>확인이 필요한 후보 <small>${candidates.length}</small></h2></div><span class="muted">상세페이지 참고</span></div><div class="restaurant-grid">${candidates.map(i=>restaurantCard(i)).join('')}</div></section>`:'';
+  return `<p class="candidate-notice">${esc(state.result.message)}${state.result.has_more?' 현재 첫 검색 페이지 일부만 확인했습니다.':''}</p>${recommended}${needsCheck}`;
 }
 function chatMessages() {
   // 질문 해석은 예시 방식이지만 식당 목록은 실제 카카오 검색으로 조회합니다.
@@ -124,8 +129,8 @@ function mapGraphic(items) {
 }
 function mapPage() {
   const items = state.result?.restaurants || [];
-  // 미검증 조건 안내는 목록이 비었을 때도 유지하며 검색 페이지 제한도 명시합니다.
-  return `${pageHeading('FIND YOUR LUNCH SPOT', '주변 식당 후보를 살펴보세요.', '선택 위치와 현재 목록의 식당을 지도에 표시합니다. 번호 마커를 눌러 식당을 선택하세요.')}${summaries()}<p class="candidate-notice">실제 판매 메뉴·예산·채식·맵기·총소요시간은 미확인입니다.${state.result?.has_more?' 첫 검색 페이지의 후보만 표시합니다.':''}</p><div class="map-layout"><aside class="restaurant-sidebar"><div class="sidebar-title"><h2>${state.result?.menu?esc(state.result.menu.name):'식당 목록'} <small>${items.length}</small></h2><span>카카오 검색</span></div>${button(state.spinning?'두근두근… 5초 추첨 중':state.gamePlayed?'한번 더! ↻':'식당 랜덤 선택 ⚄','draw-restaurant','button primary full',`${!items.length||state.spinning?'disabled':''}`)}<div class="sidebar-items">${items.length?items.slice(state.mapPage*5,state.mapPage*5+5).map(i=>restaurantCard(i,true)).join(''):`<div class="empty"><span>⌑</span><h3>표시할 식당 후보가 없어요</h3><p>${esc(state.result?.message || '게임이나 점심 메이트에서 메뉴를 먼저 골라주세요.')}</p>${button('메뉴 고르러 가기','recommend','button small secondary')}</div>`}</div>${pager(state.mapPage,5,items.length,'map-page')}</aside>${mapGraphic(items)}</div>`;
+  // 지도에는 메뉴·예산·현재 영업 여부가 확인된 추천 식당만 표시합니다.
+  return `${pageHeading('FIND YOUR LUNCH SPOT', '추천 식당을 지도에서 살펴보세요.', '현재 영업 중이며 메뉴와 예산이 확인된 식당만 번호 마커로 표시합니다.')}${summaries()}<p class="candidate-notice">메뉴·가격·현재 영업 여부 확인 완료 · 채식·맵기·총소요시간 미확인${state.result?.has_more?' · 첫 검색 페이지 일부만 확인':''}</p><div class="map-layout"><aside class="restaurant-sidebar"><div class="sidebar-title"><h2>${state.result?.menu?esc(state.result.menu.name):'추천 식당'} <small>${items.length}</small></h2><span>DB 검증 결과</span></div>${button(state.spinning?'두근두근… 5초 추첨 중':state.gamePlayed?'한번 더! ↻':'식당 랜덤 선택 ⚄','draw-restaurant','button primary full',`${!items.length||state.spinning?'disabled':''}`)}<div class="sidebar-items">${items.length?items.slice(state.mapPage*5,state.mapPage*5+5).map(i=>restaurantCard(i,true)).join(''):`<div class="empty"><span>⌑</span><h3>현재 추천 가능한 식당이 없어요</h3><p>${esc(state.result?.message || '게임이나 점심 메이트에서 메뉴를 먼저 골라주세요.')}</p>${button('메뉴 고르러 가기','recommend','button small secondary')}</div>`}</div>${pager(state.mapPage,5,items.length,'map-page')}</aside>${mapGraphic(items)}</div>`;
 }
 function profilePage() {
   if (!state.user) return `<section class="empty page-empty"><h1>회원 전용 공간이에요</h1><p>실제 계정 없이 데모 회원 기능을 체험해 보세요.</p>${button('데모 로그인','login','button primary')}</section>`;

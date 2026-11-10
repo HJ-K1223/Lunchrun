@@ -1,4 +1,4 @@
-"""Server-only settings, loaded from the project root regardless of cwd."""
+"""서버 실행 위치와 관계없이 프로젝트 루트에서 읽는 환경설정."""
 import os
 from pathlib import Path
 
@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
 ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+PROJECT_ROOT = ENV_FILE.parent
+DEFAULT_DATABASE_URL = f"sqlite:///{(PROJECT_ROOT / 'data' / 'lunchrun.db').as_posix()}"
 
 
 class Settings(BaseModel):
@@ -20,14 +22,16 @@ class Settings(BaseModel):
     groq_model: str = Field(default="openai/gpt-oss-20b", min_length=1)
     groq_timeout_seconds: float = Field(default=30, gt=0, le=120, allow_inf_nan=False)
     groq_max_completion_tokens: int = Field(default=1024, ge=128, le=8192)
+    # 3단계에서는 SQLite를 기본값으로 사용하고, 추후 DATABASE_URL만 바꿔 PostgreSQL로 전환한다.
+    database_url: str = Field(default=DEFAULT_DATABASE_URL, min_length=1)
 
 
 def load_settings() -> Settings:
-    # Deployment environment variables take precedence over the local file.
+    # 배포 환경변수가 로컬 .env보다 우선한다.
     load_dotenv(dotenv_path=ENV_FILE, override=False)
     map_api_key = os.environ.get("MAP_API_KEY", "").strip()
     if not map_api_key:
-        # Never include credential values in validation errors.
+        # 설정 오류 메시지에는 실제 인증키 값을 절대 포함하지 않는다.
         raise RuntimeError(
             "MAP_API_KEY가 없거나 비어 있습니다. 프로젝트 루트의 .env "
             "또는 서버 환경변수에 카카오 REST API 키를 설정해 주세요."
@@ -41,4 +45,5 @@ def load_settings() -> Settings:
         groq_model=os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b").strip(),
         groq_timeout_seconds=os.environ.get("GROQ_TIMEOUT_SECONDS", "30"),
         groq_max_completion_tokens=os.environ.get("GROQ_MAX_COMPLETION_TOKENS", "1024"),
+        database_url=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL).strip(),
     )

@@ -16,6 +16,15 @@ test('외부 식당명과 ID를 HTML에 그대로 삽입하지 않음',()=>{
   const run=setup();const html=run('restaurantCard({id:"\\\" onclick=\\\"alert(1)",name:"<script>test</script>",price:null})');
   assert.ok(!html.includes('<script>'));assert.ok(!html.includes('data-id="" onclick='));
 });
+test('검증 추천과 확인 필요 후보를 별도 목록으로 표시함',()=>{
+  const run=setup();
+  run('state.result={menu:{name:"짜장면"},message:"검증 결과",has_more:false,restaurants:[{id:"1",name:"추천식당",menu_verified:true,menu_name:"짜장면",price:8000,price_status:"known",open_status:"open"}],candidate_restaurants:[{id:"2",name:"확인식당",menu_verified:false,price:null,price_status:"missing",open_status:"open",warnings:["메뉴 확인 불가","가격 확인 불가"]}]};');
+  const html=run('resultCards()');
+  assert.ok(html.includes('추천 식당'));
+  assert.ok(html.includes('확인이 필요한 후보'));
+  assert.ok(html.includes('8,000원'));
+  assert.ok(html.includes('메뉴 확인 불가'));
+});
 test('실제 식당을 가상 지도 좌표에 배치하지 않음',()=>{
   const run=setup();const html=run('mapGraphic([{id:"test",name:"식당"}])');
   assert.ok(html.includes('id="map-panel"'));assert.ok(!html.includes('map-pin'));

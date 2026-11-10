@@ -31,6 +31,8 @@ class RestaurantCandidate(Coordinates):
     name: str = Field(min_length=1)
     address: str = ""
     category: str = ""
+    # search_restaurants는 카카오 음식점 그룹(FD6)만 요청합니다.
+    category_group_code: str = "FD6"
     phone: str = ""
     place_url: str = ""
     distance_m: float | None = Field(default=None, ge=0, allow_inf_nan=False)
@@ -144,7 +146,7 @@ class KakaoClient:
         return {"address": address or None}
 
     async def search_restaurants(self, menu_name: str, lat: float, lng: float, radius_m: int = 500, page: int = 1, size: int = 15) -> dict:
-        # 호출 한 번에 한 페이지만 조회합니다. 모든 메뉴/페이지를 자동 순회하지 않습니다.
+        # 4단계 저장 대상은 음식점(FD6)이며, 호출 한 번에 한 페이지만 조회합니다.
         query = LocationSearchRequest(query=menu_name).query
         search = RestaurantSearch(lat=lat, lng=lng, radius_m=radius_m, page=page, size=size)
         data = await self._request("search/keyword.json", {
@@ -159,6 +161,7 @@ class KakaoClient:
                     id=item["id"], name=item["place_name"], lat=float(item["y"]), lng=float(item["x"]),
                     address=item.get("road_address_name") or item.get("address_name", ""),
                     category=item.get("category_name", ""), phone=item.get("phone", ""),
+                    category_group_code=item.get("category_group_code") or "FD6",
                     place_url=item.get("place_url", ""),
                     distance_m=float(item["distance"]) if item.get("distance") not in (None, "") else None,
                     search_keyword=query,

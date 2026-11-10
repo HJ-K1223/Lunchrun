@@ -1,6 +1,6 @@
 # LunchRun-demo
 
-Geolocation·카카오 로컬 API로 위치를 설정하고, 가상 메뉴로 추천 흐름을 확인하는 로컬 웹 앱입니다.
+Geolocation·카카오 로컬 API로 위치를 설정하고, 상세페이지의 메뉴·가격·영업시간을 확인해 식당을 추천하는 로컬 웹 앱입니다.
 
 ## 실행
 
@@ -17,6 +17,7 @@ Geolocation·카카오 로컬 API로 위치를 설정하고, 가상 메뉴로 �
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m playwright install chromium
 ```
 
 또는 준비된 환경에서 `run.ps1`을 실행합니다. 실행 정책을 변경할 필요 없이 위 Python 명령을 직접 사용할 수 있습니다.
@@ -26,15 +27,16 @@ python -m venv .venv
 - 홈: 현재 위치 조회, 카카오 주소/장소 검색, 예산·시간·음식 종류·채식·맵기, 조건 초기화
 - 게임·채팅: 공통 조건 표시/수정, 메뉴 추첨, Groq 질문 해석·조건 변경 확인, 식당 카드 4개씩 페이지 이동
 - 게임: 조건에 맞는 메뉴 추첨, 메뉴 선택, 다시 뽑기
-- 식당 목록 화면: 실제 카카오 검색 후보 5개씩 표시, 5초 랜덤 선택, 지도·반경 원·마커 선택 연동
+- 식당 목록 화면: 메뉴·예산·현재 영업 여부가 확인된 추천 식당 표시, 5초 랜덤 선택, 지도·반경 원·마커 선택 연동
 - 데모 회원: 닉네임으로 화면 전환, 선호/비선호 토글, 회원페이지
 - 모바일 반응형 화면 및 키보드 포커스 표시
 
 ## 데모 제한
 
-**위치와 식당 후보는 실제 카카오 검색이며 질문은 Groq으로 해석합니다. 메뉴 분류·예상 가격·인증은 데모입니다.**
+**위치와 식당 후보는 실제 카카오 검색이며 질문은 Groq으로 해석합니다. 식당 메뉴·가격·영업시간은 카카오 상세페이지 수집값을 사용합니다.**
 
-- 예시 메뉴 카탈로그의 분류·예상 가격으로 메뉴를 고른 후 카카오에서 관련 식당을 검색합니다. 실제 식당의 판매 메뉴·예산·채식·맵기·총소요시간을 검증한 추천이 아닙니다. 첨부 엑셀은 아직 가져오지 않았습니다.
+- 예시 메뉴 카탈로그에서 메뉴를 고른 후 카카오에서 관련 식당을 검색합니다. 실제 식당은 메뉴·가격·현재 영업 여부를 확인하며, 채식·맵기·총소요시간은 아직 적용하지 않습니다.
+- 신규 식당은 한 요청에서 최대 3곳의 상세페이지를 수집합니다. 영업시간 미확인 식당은 제외하고, 메뉴·가격 미확인은 추천과 분리한 확인 필요 후보로 표시합니다.
 - 현재 위치 버튼을 누르면 브라우저 위치 권한을 요청합니다. 주소 표시를 위해 확보한 좌표를 서버를 통해 카카오에 전달합니다. 주소 변환 실패 시 좌표를 표시하며, 조회 실패 시 기존 위치를 유지합니다.
 - 현재 위치 조회는 HTTPS 또는 localhost/127.0.0.1에서 사용하세요. 데스크톱·기기 환경에 따라 오차가 크거나 조회되지 않을 수 있으며, 정확도를 화면에 표시합니다.
 - 주소와 장소 검색을 구분하며 상위 10개 결과를 표시합니다. 검색어/좌표는 앱에 영구 저장하지 않습니다. 반경은 기본 500m이며 50~500m 정수로 변경합니다. 좌표는 카카오 검색에만 사용하고 Groq에는 전달하지 않습니다.
@@ -53,7 +55,7 @@ python -m venv .venv
 - `httpx`가 필요합니다(기존 requirements에 포함). 서버 재시작 후 브라우저를 새로고침하세요.
 - `POST /api/locations/search`: `query`, `kind`(`address`/`place`)로 검색합니다.
 - `POST /api/locations/reverse`: `lat`, `lng`로 주소를 조회합니다. 좌표와 검색어가 접근 로그 URL에 포함되지 않도록 POST 본문을 사용합니다.
-- 추천·채팅 요청에는 `location`이 필수이며 `radius_m`는 100~20,000m 범위를 검증합니다. 기존에 위치 없이 요청하던 클라이언트는 수정해야 합니다.
+- 추천·채팅 요청에는 `location`이 필수이며 `radius_m`는 50~500m 정수를 검증합니다. 기존에 위치 없이 요청하던 클라이언트는 수정해야 합니다.
 - 개발자는 `python -m unittest discover -s tests -v`와 `node --test tests/location.test.cjs tests/location-flow.test.cjs`로 외부 연결 없는 검증을 실행할 수 있습니다.
 
 ## 구조 및 후속 연결 위치
@@ -64,6 +66,11 @@ app/
   api.py        추천·채팅 API
   schemas.py    Pydantic 입력 검증
   services.py   예시 메뉴 선정, Groq 해석 결과 처리, 실제 식당 검색 연결
+  recommendation_engine.py  메뉴·예산·현재 영업 여부 추천 판정
+  detail_collection.py      상세페이지 수집 작업과 DB 저장 연결
+  database/                 SQLAlchemy 테이블·엔진·세션
+  collectors/               Playwright 카카오 상세페이지 수집기
+  repositories/             식당·메뉴·영업시간 저장 계층
   locations.py  위치 검색 HTTP 요청/오류 응답
   clients/
     kakao.py    카카오 주소·장소·좌표 변환·주변 식당 검색 클라이언트
@@ -80,7 +87,7 @@ Groq·위치·지도 연결은 완료되어 있습니다. 실제 회원 기능�
 `KakaoClient`는 서버 전용이며 `Settings.map_api_key`(SecretStr)를 생성자에 전달합니다. `search_addresses`, `search_places`, `reverse_address`, `search_restaurants`는 비동기 메서드입니다.
 
 - `search_restaurants(menu_name, lat, lng, radius_m=500, page=1, size=15)`는 음식점(FD6)을 거리순으로 한 페이지만 검색합니다. 반경 50~500m, 페이지 1~45, 크기 1~15를 검증합니다.
-- 응답 `items`의 식당 ID·이름·주소·좌표·분류·연락처·상세 URL·직선거리만 실제 검색값입니다. 메뉴 판매 여부는 미확인(`menu_verified=false`)이며 가격·평점·사진·이동시간은 null입니다.
+- 카카오 검색 응답의 식당 ID·이름·주소·좌표·분류·연락처·상세 URL·직선거리를 저장하고, 상세페이지에서 확인된 메뉴·가격·영업시간을 연결합니다. 평점·사진·이동시간은 사용하지 않습니다.
 - 추천 API/Groq 채팅에서 이 함수를 호출합니다. 첫 페이지 최대 15개 후보 안에서 카드 4개씩/목록 5개씩 표시하며, 추가 API 페이지가 있으면 현재 표시 범위를 안내합니다. 전체 식당을 수집한 목록은 아닙니다.
 - 기존 위치 검색 응답 형식은 유지합니다. 실패 시 `X-Error-Code` 헤더에서 `kakao_auth`(401 인증), `kakao_permission`(403 권한), `kakao_service_disabled`(로컬 비활성화), `kakao_rate_limit`, `kakao_timeout`, `kakao_connection`, `kakao_response` 등을 구분합니다. 외부 오류 원문과 키는 노출하지 않습니다.
 - 테스트는 모의 HTTP 통신만 사용하며 실제 키의 권한/할당량 유효성은 증명하지 않습니다.
